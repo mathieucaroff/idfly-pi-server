@@ -1,31 +1,32 @@
 #https://gist.github.com/mdonkers/63e115cc0c79b4f6b8b3a6b797e485c7
 
 import os
+import time
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
-#import sched
+import sched
 import json
 import re
 
 VAL_MOTEUR_MIN = -100
 VAL_MOTEUR_MAX = 100
 
-#scheduler = sched.scheduler()
+scheduler = sched.scheduler()
 
 def printAREM(*arg, **kwargs):
     print("[AREM]", *arg, **kwargs)
 
 def info(obj):
     typestr = re.sub(r"^<class '(.*)'>$", r"<\1>", repr(type(obj)))
-    return f"{typestr} {repr(obj)}"
+    return "{} {}".format(typestr, repr(obj))
 
 def show(**kwargs):
     ''' montre la valeur de la valiable renseignée '''
     items = kwargs.items()
     assert len(items) == 1
     key, value = next(iter(items)) # équivalent à items[0]
-    printAREM(f"{key}:: {info(value)}") # f remplace les termes entre crochets par leurs valeurs
+    printAREM("{}:: {}".format(key, info(value))) # f remplace les termes entre crochets par leurs valeurs
 
 
 def nope(*args, **kwargs):
@@ -38,16 +39,17 @@ def action_tell(down=None, forward=None, frontT=None, backT=None):
     show(forward=forward)
     show(frontT=frontT)
     show(backT=backT)
+    time.sleep(1)
 
 
-def serve_with_action_handler(port=9000, action=nope): # action est l'action qu'on veut voir effectuée avec les informations de POST
+def serve_with_action_handler(port=9000, host='', action=nope): # action est l'action qu'on veut voir effectuée avec les informations de POST
     ''' fonction serveur '''
     class Handler(SimpleHTTPRequestHandler):
         log_message = nope # on rédéfinit la fonction log_message
 
         def do_POST(self):
             content_length = int(self.headers['Content-Length'])
-            post_body = self.rfile.read(content_length)
+            post_body = self.rfile.read(content_length).decode("utf-8")
             
             body = json.loads(post_body)
             ok = isinstance(body, dict) # json peut renvoyer plein de trucs, mais on attend un dict
@@ -59,22 +61,22 @@ def serve_with_action_handler(port=9000, action=nope): # action est l'action qu'
                 self.send_response(ok_noContent)
                 self.end_headers()
                 action(**body) # ** unpack le dictionnaire, on appelle action sur les valeurs obtenues
-                '''scheduler.enter(
+                scheduler.enter(
                     delay=0,
                     priority=1,
                     action=action,
                     argument=[],
                     kwargs=body,
-                )'''
+                )
             else:
                 error = 400
                 show(CODE=error)
                 self.send_response(error)
                 self.end_headers()
 
-    server_address = ('', port)
+    server_address = (host, port)
     http_server = HTTPServer(server_address, Handler)
-    printAREM(f"Starting http server on port {port}")
+    printAREM("Starting http server on port {port}".format(port=port))
     try:
         http_server.serve_forever()
     except KeyboardInterrupt:
@@ -86,9 +88,12 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
     from sys import argv
     workingDirectory = "../remote"
     port = 9000
+    host = ''
     if len(argv) >= 2: # on regarde s'il y a au moins un argument
         workingDirectory = argv[1]
         if len(argv) >= 3:
             port = int(argv[2])
+            if len(argv) >= 4:
+                host = argv[3]
     os.chdir(workingDirectory)
-    serve_with_action_handler(port=port, action=action_tell)
+    serve_with_action_handler(port=port, host=host, action=action_tell)
