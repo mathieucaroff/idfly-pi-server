@@ -2,17 +2,19 @@
 
 import os
 import time
+import multiprocessing as mp
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
-import sched
 import json
 import re
 
 VAL_MOTEUR_MIN = -100
 VAL_MOTEUR_MAX = 100
 
-scheduler = sched.scheduler()
+COMMANDS = set("forward down frontT backT".split())
+
+commandQueue = mp.Queue()
 
 def printAREM(*arg, **kwargs):
     print("[AREM]", *arg, **kwargs)
@@ -33,13 +35,14 @@ def nope(*args, **kwargs):
     pass
 
 
-def action_tell(down=None, forward=None, frontT=None, backT=None):
-    ''' print les valeurs des 4 moteurs '''
-    show(down=down)
-    show(forward=forward)
-    show(frontT=frontT)
-    show(backT=backT)
-    time.sleep(1)
+def action_tell(command):
+    """Print les valeurs des 4 moteurs
+    
+    :param: command Dictionnaire contenant les valeurs pour les clés à metter à jour.
+    """
+    for key, value in command.items():
+        printAREM("  {}: {}".format(key, value))
+    time.sleep(2.0) # seconds
 
 
 def serve_with_action_handler(port=9000, host='', action=nope): # action est l'action qu'on veut voir effectuée avec les informations de POST
@@ -53,36 +56,43 @@ def serve_with_action_handler(port=9000, host='', action=nope): # action est l'a
             
             body = json.loads(post_body)
             ok = isinstance(body, dict) # json peut renvoyer plein de trucs, mais on attend un dict
-            ok = ok and body.keys() <= set("down forward frontT backT".split()) # on regarde si les clefs reçues sont dans l'ensemble attendu
+            ok = ok and body.keys() <= COMMANDS # on regarde si les clefs reçues sont dans l'ensemble attendu
             ok = ok and all(isinstance(val, int) and VAL_MOTEUR_MIN <= val <= VAL_MOTEUR_MAX for val in body.values()) # (...for...) est un générateur, all s'en sert
+
             if ok:
-                ok_noContent = 204
-                show(CODE=ok_noContent)
-                self.send_response(ok_noContent)
-                self.end_headers()
-                action(**body) # ** unpack le dictionnaire, on appelle action sur les valeurs obtenues
-                scheduler.enter(
-                    delay=0,
-                    priority=1,
-                    action=action,
-                    argument=[],
-                    kwargs=body,
-                )
+                code_ok_noContent = 204
+                code = code_ok_noContent
             else:
-                error = 400
-                show(CODE=error)
-                self.send_response(error)
-                self.end_headers()
+                code_error = 400
+                code = code_error
+            
+            printAREM("POST / {}:".format(code))
+            self.send_response(code)
+            self.end_headers()
 
-    server_address = (host, port)
-    http_server = HTTPServer(server_address, Handler)
-    printAREM("Starting http server on port {port}".format(port=port))
-    try:
-        http_server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    printAREM("Stoping http server")
+            if ok:
+                command = body
+                commandQueue.put(command)
 
+    def serve():
+        server_address = (host, port)
+        http_server = HTTPServer(server_address, Handler)
+        printAREM("Starting http server on port {port}".format(port=port))
+        try:
+            http_server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        printAREM("Stoping http server")
+
+    def queueRunner():
+        while True:
+            command = commandQueue.get(block=True)
+            action(command)
+    
+    pqr = mp.Process(target=queueRunner)
+    pqr.start()
+    serve()
+    pqr.join()
 
 if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou comme programme principal
     from sys import argv
@@ -96,4 +106,5 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
             if len(argv) >= 4:
                 host = argv[3]
     os.chdir(workingDirectory)
+
     serve_with_action_handler(port=port, host=host, action=action_tell)
