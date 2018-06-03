@@ -14,7 +14,7 @@ VAL_MOTEUR_MAX = 100
 
 COMMANDS = set("forward down frontT backT".split())
 
-commandQueue = mp.Queue()
+commandQueue = mp.SimpleQueue()
 
 def printAREM(*arg, **kwargs):
     print("[AREM]", *arg, **kwargs)
@@ -42,7 +42,7 @@ def action_tell(command):
     """
     for key, value in command.items():
         printAREM("  {}: {}".format(key, value))
-    time.sleep(2.0) # seconds
+    time.sleep(0.2) # seconds
 
 
 def serve_with_action_handler(port=9000, host='', action=nope): # action est l'action qu'on veut voir effectuée avec les informations de POST
@@ -86,7 +86,7 @@ def serve_with_action_handler(port=9000, host='', action=nope): # action est l'a
 
     def queueRunner():
         while True:
-            command = commandQueue.get(block=True)
+            command = commandQueue.get() # Probably bloking
             action(command)
     
     pqr = mp.Process(target=queueRunner)
