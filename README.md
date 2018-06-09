@@ -4,7 +4,7 @@ Ainsi, lorsqu'un navigateur se connect en http à la racine du serveur, le fichi
 
 Pour reçevoir les instructions de commande, le serveur accèpte des requêtes POST, qui sont prises en charge par la méthode do_POST. Celle-ci s'assure que le format (json) de la requête est correct et que les données sont valides (validité de tous les nom des champs et de leur valeur). Si la requête est invalide, le code d'erreur 400 est renvoyé. Si la requête est valide, elle est stoquée dans une file et le code de confirmation 204 (NoContent) est renvoyé.
 
-Les valeurs présentes dans la file sont consommées par un second processus python crée grâce au module multiprocessing de python. Le second processus appèle la fonction d'action donnée en lui passant en paramètre les instructions reçues, sous forme d'un dictionnaire Python. Actuellement, il s'agit de `action_tell` -- une fonction qui affiche les instruction donnée.
+Les valeurs présentes dans la file sont consommées par un second processus python crée grâce au module multiprocessing de python. Pour chaque valeur reçue dans la requête, le second processus appèle la méthode correspondante en lui passant en paramètre les instructions reçues, sous forme d'un dictionnaire Python. Actuellement, il s'agit de `action_tell` -- une fonction qui affiche les instruction donnée.
 
 Les clés utilisées pour transmettre les instructions sont:
 
