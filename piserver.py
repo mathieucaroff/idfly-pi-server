@@ -112,7 +112,7 @@ def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHan
             body = json.loads(post_body)
             ok = isinstance(body, dict) # json peut renvoyer plein de trucs, mais on attend un dict
             ok = ok and body.keys() <= MOTORS # on regarde si les clefs reçues sont dans l'ensemble attendu
-            ok = ok and all(isinstance(val, int) and VAL_MOTEUR_MIN <= val <= VAL_MOTEUR_MAX for val in body.values()) # (...for...) est un générateur, all s'en sert
+            ok = ok and all(val is None or isinstance(val, int) and VAL_MOTEUR_MIN <= val <= VAL_MOTEUR_MAX for val in body.values()) # (...for...) est un générateur, all s'en sert
 
             if ok:
                 try:
@@ -124,7 +124,7 @@ def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHan
             else:
                 code = code_badRequest # code d'erreur
             
-            printAREM("POST / {}:".format(code))
+            printAREM("POST / {}".format(code))
             self.send_response(code) # envoi du code de réponse
             self.end_headers() # envoi de la réponse (fin)
 
@@ -144,16 +144,24 @@ def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHan
         dummyTimer = threading.Timer(0, nop)
         motorThreads = dict((motor, dummyTimer) for motor in MOTORS)
         while True:
-            command = commandQueue.get() # appel généralement blockant
+            command = commandQueue.get() # appel généralement blocant
             for key, value in command.items():
-                motorThreads[key].cancel()
-                getattr(actionHandler, key)(value)
-                time.sleep(0.05)
                 action = getattr(actionHandler, key)
+
+                # The action should be canceled after AUTO_CANCEL_TIMING.
+                # Canceling := passing a value of 0 to the action
                 if value != 0:
-                    th = threading.Timer(AUTO_CANCEL_TIMING, action, args=[0])
-                    motorThreads[key] = th
-                    th.start()
+                    val = 0
+                    thread = threading.Timer(AUTO_CANCEL_TIMING, action, args=[val])
+                    motorThreads[key] = thread
+                    thread.start()
+                motorThreads[key].cancel()
+
+                # Do the action (if it isn't just a keep request)
+                isKeepRequest = value is None
+                if not isKeepRequest:
+                    action(value)
+                    time.sleep(0.05)
                 
     
     pqr = mp.Process(target=queueRunner) # nouveau process : execution des commandes dans la file d'attente
