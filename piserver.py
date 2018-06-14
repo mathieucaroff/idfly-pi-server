@@ -11,6 +11,32 @@ import json
 import re
 from abc import ABC, abstractmethod
 
+import pigpio
+
+
+pi = pigpio.pi()             # exit script if no connection
+if not pi.connected:
+    exit()
+
+##Fonction pour les GPIO
+def initialisation () :
+    #for pwm...
+    pi.set_mode(13, pigpio.OUTPUT)#PWM1
+    pi.set_mode(19, pigpio.OUTPUT)#PWM2
+    #for direction
+    pi.set_mode(21, pigpio.OUTPUT)#Direction PWM1
+    pi.set_mode(20, pigpio.INPUT)#Direction PWM1
+    pi.set_mode(5, pigpio.OUTPUT)#Direction PWM2
+    pi.set_mode(6, pigpio.OUTPUT)#Direction PWM2
+
+    #initilaistion des sorties
+    pi.write(21,1)
+    pi.write(20,0)
+    
+    pi.write(5,1)
+    pi.write(6,0)
+
+initialisation()
 
 # Si vous développez sous VSCode avec l'extension python, vous pouvez
 # voir survenir des crash de l'application (Segmentation fault).
@@ -81,6 +107,36 @@ class ActionHandler_tell(BaseActionHandler):
     
     def down(self, value):
         printAREM("  down: {}".format(value))
+
+    def frontT(self, value):
+        printAREM("  frontT: {}".format(value))
+    
+    def backT(self, value):
+        printAREM("  backT: {}".format(value))
+
+
+class ActionHandler_motor_Action(BaseActionHandler):
+    def forward(self, value):
+        printAREM("  forward: {}".format(value))
+        if (value>=0):
+            pi.write(21,1)
+            pi.write(20,0)
+            pi.set_PWM_dutycycle(13,  255 * value / 100)
+        else :
+            pi.write(21,0)
+            pi.write(20,1)
+            pi.set_PWM_dutycycle(13,  -255 * value / 100)
+
+    def down(self, value):
+        printAREM("  down: {}".format(value))
+        if (value>=0):
+            pi.write(5,1)
+            pi.write(6,0)
+            pi.set_PWM_dutycycle(19,  255 * value / 100)
+        else :
+            pi.write(5,0)
+            pi.write(6,1)
+            pi.set_PWM_dutycycle(19,  -255 * value / 100)
 
     def frontT(self, value):
         printAREM("  frontT: {}".format(value))
@@ -183,5 +239,5 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
     serve_with_action_handler(
         port=port,
         host=host,
-        actionHandler=ActionHandler_tell()
+        actionHandler=ActionHandler_motor_Action()
     ) # lancement du serveur
