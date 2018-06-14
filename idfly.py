@@ -1,41 +1,79 @@
-# -*- coding: utf-8 -*-
 """
-Spyder Editor
-
-This is a temporary script file.
+Le fichier main.
 """
-#librairies
 
-import pigpio
-import time
+import os
+from sys import argv
 
-#initialisation de la librairie pigpio
-pi = pigpio.pi()             # exit script if no connection
-if not pi.connected:
-    exit()
 
-def initialisation () :
-    #for pwm...
-    pi.set_mode(13, pigpio.OUTPUT)#PWM1
-    pi.set_mode(19, pigpio.OUTPUT)#PWM2
-    #for direction
-    pi.set_mode(21, pigpio.OUTPUT)#Direction PWM1
-    pi.set_mode(20, pigpio.INPUT)#Direction PWM1
-    pi.set_mode(5, pigpio.OUTPUT)#Direction PWM2
-    pi.set_mode(6, pigpio.OUTPUT)#Direction PWM2
-    
-def avancer_sens_direct ():
-    pi.write(21,1)#Bon sens
-    pi.write(20,0)
-    
-    pi.write(5,1)
-    pi.write(6,0)
-        
-    pi.set_PWM_dutycycle(13,  128) # PWM 1/2 on
-    pi.set_PWM_dutycycle(19,  128) # PWM 1/2 on
-    
+from util import printIDFLY, nop
+from idflygpio import IdflyGPIO, DummyIdflyGPIO
+from piserver import serve_with_action_handler, BaseActionHandler
 
-initialisation()
-while 1 :    
-    avancer_sens_direct()
-    
+
+argv0 = argv[0] if argv else "idfly.py"
+runningAsRoot = os.geteuid() == 0
+
+httpRoot = "../remote" # dossier contenant la page web à envoyer
+port = 80 if runningAsRoot else 9000 # port par défaut
+host = '' # hôte accepté par défaut ('' == '0.0.0.0' == Tous)
+
+documentation = """
+Usage:
+ python3 {argv0} [httpRoot [port [host]]]
+
+Serveur python de la raspberry pi pour le projet IDFLY.
+
+  httpRoot defaults to: {httpRoot}
+  port defaults to: {port}
+  host defaults to: "{host}"
+""".format(**locals())
+
+if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou comme programme principal
+
+    if "--help" in argv or "-h" in argv:
+        print(documentation)
+        exit()
+
+    try:
+        idfly = IdflyGPIO()
+    except RuntimeError:
+        idfly = DummyIdflyGPIO()
+
+    class ActionHandler_motor(BaseActionHandler):
+        def forward(self, value):
+            printIDFLY("  forward: {}".format(value))
+            idfly.forward(value)
+
+        def down(self, value):
+            printIDFLY("  down: {}".format(value))
+            idfly.down(value)
+
+        def frontT(self, value):
+            printIDFLY("  frontT: {}".format(value))
+            printIDFLY("  frontT: {} -- unimplemented".format(value))
+
+        def backT(self, value):
+            printIDFLY("  backT: {}".format(value))
+            printIDFLY("  backT: {} -- unimplemented".format(value))
+
+    try:
+        httpRoot = argv[1]
+        port = int(argv[2])
+        host = argv[3]
+    except IndexError:
+        pass
+
+    try:
+        os.chdir(httpRoot)
+    except FileNotFoundError:
+        printIDFLY("Erreur, le dossier httpRoot (`{}`) n'existe pas.".format(httpRoot))
+        exit()
+
+    serve_with_action_handler(
+        port=port,
+        host=host,
+        ActionHandler=ActionHandler_motor
+    ) # lancement du serveur
+else:
+    print("[IDFLY] idfly.py n'est pas supposé être importé, mais uniquement utilisé depuis la console: `python3 idfly.py`")

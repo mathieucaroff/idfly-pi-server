@@ -6,78 +6,34 @@ import multiprocessing as mp
 import threading
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, HTTPServer
-
 import json
-import re
 from abc import ABC, abstractmethod
 
-import pigpio
+from util import printIDFLY, nop
 
 
-pi = pigpio.pi()             # exit script if no connection
-if not pi.connected:
-    exit()
 
-##Fonction pour les GPIO
-def initialisation () :
-    #for pwm...
-    pi.set_mode(13, pigpio.OUTPUT)#PWM1
-    pi.set_mode(19, pigpio.OUTPUT)#PWM2
-    #for direction
-    pi.set_mode(21, pigpio.OUTPUT)#Direction PWM1
-    pi.set_mode(20, pigpio.INPUT)#Direction PWM1
-    pi.set_mode(5, pigpio.OUTPUT)#Direction PWM2
-    pi.set_mode(6, pigpio.OUTPUT)#Direction PWM2
-
-    #initilaistion des sorties
-    pi.write(21,1)
-    pi.write(20,0)
-    
-    pi.write(5,1)
-    pi.write(6,0)
-
-initialisation()
-
-# Si vous développez sous VSCode avec l'extension python, vous pouvez
-# voir survenir des crash de l'application (Segmentation fault).
-# Ceux-ci sont dues à un bug de l'extension python.
+# Si vous développez sous VSCode avec l'extension python, le seveur peut crasher
+# lorsqu'il reçoit beaucoups de requêtes (Segmentation fault).
+# Cela est dues à un bug de l'extension Python. Ça ne se produisent pas lorsque
+# le serveur est lancé sans debugger, comme par exemple, depuis la ligne de
+# commande.
 
 
-VAL_MOTEUR_MIN = -100 # valeur minimale de commande prise en compte
+# Les constantes ci-dessous sont utilisées pour la vérification de la validité des données
 VAL_MOTEUR_MAX = 100 # valeur maximale de commande prise en compte
+VAL_MOTEUR_MIN = -VAL_MOTEUR_MAX # valeur minimale de commande prise en compte
 AUTO_CANCEL_TIMING = 1.0 # seconds # temps qu'un moteur tournera si l'instruction de maintient en fonctionnement n'est pas envoyée
 MOTORS = set("forward down frontT backT".split()) # noms des moteurs (commandes) pris en compte
 
 # https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 code_ok_noContent = 204 # code de réussite
-code_badRequest = 400 # code d'erreur
-code_serviceUnavailable = 503
+code_badRequest = 400 # code d'erreur en cas de mauvaise requête du navigateur
+code_serviceUnavailable = 503 # code d'erreur en cas de surchage du serveur
 
-workingDirectory = "remote" # dossier contenant la page web à envoyer
-port = 9000 # port par défaut
-host = '' # hote accepté par défaut ('' == Tous)
-maxQueueSize = 4 # nombre de requêtes en attentes à partir duquel elles sont refusées
+maxQueueSize = 4 # nombre de requêtes en attentes au delà duquel les requêtes sont refusées
 
 commandQueue = mp.Queue(maxsize=maxQueueSize) # file des actions reçues par le serveur et en attente de traitement
-
-def printAREM(*arg, **kwargs):
-    ''' ajoute "[AREM]" et affiche les données en paramètre '''
-    print("[AREM]", *arg, **kwargs)
-
-def info(obj):
-    typestr = re.sub(r"^<class '(.*)'>$", r"<\1>", repr(type(obj)))
-    return "{} {}".format(typestr, repr(obj))
-
-def show(**kwargs):
-    ''' montre la valeur de la valiable renseignée '''
-    items = kwargs.items()
-    assert len(items) == 1
-    key, value = next(iter(items)) # équivalent à items[0]
-    printAREM("{}:: {}".format(key, info(value))) # f remplace les termes entre crochets par leurs valeurs
-
-
-def nop(*args, **kwargs):
-    pass
 
 
 class BaseActionHandler(ABC):
@@ -90,7 +46,7 @@ class BaseActionHandler(ABC):
         pass
 
     @abstractmethod
-    def frontT(self, valuevalue):
+    def frontT(self, value):
         pass
     
     @abstractmethod
@@ -100,66 +56,27 @@ class BaseActionHandler(ABC):
 class DummyActionHandler(BaseActionHandler):
     forward, down, frontT, backT = [nop] * 4
 
-
 class ActionHandler_tell(BaseActionHandler):
     def forward(self, value):
-        printAREM("  forward: {}".format(value))
+        printIDFLY("  forward: {}".format(value))
     
     def down(self, value):
-        printAREM("  down: {}".format(value))
+        printIDFLY("  down: {}".format(value))
 
     def frontT(self, value):
-        printAREM("  frontT: {}".format(value))
+        printIDFLY("  frontT: {}".format(value))
     
     def backT(self, value):
-        printAREM("  backT: {}".format(value))
+        printIDFLY("  backT: {}".format(value))
 
 
-class ActionHandler_motor_Action(BaseActionHandler):
-    def forward(self, value):
-        printAREM("  forward: {}".format(value))
-        if (value>=0):
-            pi.write(21,1)
-            pi.write(20,0)
-            pi.set_PWM_dutycycle(13,  255 * value / 100)
-        else :
-            pi.write(21,0)
-            pi.write(20,1)
-            pi.set_PWM_dutycycle(13,  -255 * value / 100)
-
-    def down(self, value):
-        printAREM("  down: {}".format(value))
-        if (value>=0):
-            pi.write(5,1)
-            pi.write(6,0)
-            pi.set_PWM_dutycycle(19,  255 * value / 100)
-        else :
-            pi.write(5,0)
-            pi.write(6,1)
-            pi.set_PWM_dutycycle(19,  -255 * value / 100)
-
-    def frontT(self, value):
-        printAREM("  frontT: {}".format(value))
+def serve_with_action_handler(port, host, ActionHandler=DummyActionHandler): # action est l'action qu'on veut voir effectuée avec les informations de POST
+    """Fonction serveur"""
     
-    def backT(self, value):
-        printAREM("  backT: {}".format(value))
+    actionHandler = ActionHandler()
 
-
-def action_tell(command):
-    """
-    (No longer used)
-    Print les valeurs des 4 moteurs.
-    :param: command Dictionnaire contenant les valeurs pour les clés à mettre à jour.
-    """
-    for key, value in command.items():
-        printAREM("  {}: {}".format(key, value))
-    time.sleep(0.2) # seconds
-
-
-def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHandler): # action est l'action qu'on veut voir effectuée avec les informations de POST
-    """ fonction serveur """
-    class Handler(SimpleHTTPRequestHandler):
-        log_message = nop # on rédéfinit la fonction log_message
+    class HTTPRequestHandler(SimpleHTTPRequestHandler):
+        log_message = nop # on redéfinit la fonction log_message
 
         def do_POST(self):
             content_length = int(self.headers['Content-Length']) # longueur du body
@@ -180,21 +97,22 @@ def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHan
             else:
                 code = code_badRequest # code d'erreur
             
-            printAREM("POST / {}".format(code))
+            printIDFLY("POST / {}".format(code))
             self.send_response(code) # envoi du code de réponse
             self.end_headers() # envoi de la réponse (fin)
 
     def serve():
         server_address = (host, port)
-        http_server = HTTPServer(server_address, Handler)
-        printAREM("Starting http server on port {port}".format(port=port))
+        http_server = HTTPServer(server_address, HTTPRequestHandler)
+        printIDFLY("Starting http server on port {port}".format(port=port))
         try:
             http_server.serve_forever()
         except KeyboardInterrupt:
             pass
-        printAREM("Stoping http server")
+        printIDFLY("Stoping http server")
 
     def queueRunner():
+        """Thread recevant les informations transmise par le serveur et appelant les méthodes correspondantes"""
         for motor in MOTORS:
             assert hasattr(actionHandler, motor), motor
         dummyTimer = threading.Timer(0, nop)
@@ -202,42 +120,24 @@ def serve_with_action_handler(port=port, host=host, actionHandler=DummyActionHan
         while True:
             command = commandQueue.get() # appel généralement blocant
             for key, value in command.items():
-                action = getattr(actionHandler, key)
+                action = getattr(actionHandler, key) # Get the method (forward, ...)
 
-                # The action should be canceled after AUTO_CANCEL_TIMING.
-                # Canceling := passing a value of 0 to the action
+                motorThreads[key].cancel() # Cancel scheduled motor stop
+
+                # The motor should be stopped after AUTO_CANCEL_TIMING
                 if value != 0:
                     val = 0
                     thread = threading.Timer(AUTO_CANCEL_TIMING, action, args=[val])
                     motorThreads[key] = thread
                     thread.start()
-                motorThreads[key].cancel()
 
                 # Do the action (if it isn't just a keep request)
                 isKeepRequest = value is None
                 if not isKeepRequest:
                     action(value)
                     time.sleep(0.05)
-                
     
     pqr = mp.Process(target=queueRunner) # nouveau process : execution des commandes dans la file d'attente
-    pqr.start() # démarrage du process pqr
-    serve() # démarrage du serveur
-    pqr.join() # fin du process pqr
-
-
-if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou comme programme principal
-    from sys import argv
-    if len(argv) >= 2:
-        workingDirectory = argv[1]
-        if len(argv) >= 3:
-            port = int(argv[2])
-            if len(argv) >= 4:
-                host = argv[3]
-    os.chdir(workingDirectory)
-
-    serve_with_action_handler(
-        port=port,
-        host=host,
-        actionHandler=ActionHandler_motor_Action()
-    ) # lancement du serveur
+    pqr.start() # démarrage du process pqr (Process Queue Runner)
+    serve()     # démarrage du serveur
+    pqr.join()  # fin du process pqr
