@@ -1,5 +1,5 @@
 """
-Une classe pour la gestion des GPIO.
+Module de gestion des GPIO des moteurs du dirigeable.
 """
 from abc import ABC, abstractmethod
 from collections import namedtuple

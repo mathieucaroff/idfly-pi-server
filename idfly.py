@@ -1,5 +1,5 @@
 """
-Le fichier main.
+Le fichier main. L'invoquer avec l'option --help pour en savoir plus.
 """
 
 import os
