@@ -1,6 +1,10 @@
 """
 Module de gestion des GPIO des moteurs du dirigeable.
 """
+
+import os
+import time
+import subprocess
 from abc import ABC, abstractmethod
 from collections import namedtuple
 
@@ -26,9 +30,9 @@ class MotorPins():
     
     def __call__(self, value):
         if value >= 0:
-            a, b = 1, 0
-        else:
             a, b = 0, 1
+        else:
+            a, b = 1, 0
             value *= -1
         self._pi.write(self._directionA, a)
         self._pi.write(self._directionB, b)
@@ -57,9 +61,16 @@ class IdflyGPIO(BaseIdflyGPIO):
     """
 
     def __init__(self):
+        weAreRoot = os.geteuid() == 0
+        if weAreRoot:
+            subprocess.call(["sh", "-c", "pgrep pigpiod || pigpiod"])
+            time.sleep(1)
         pi = pigpio.pi()
         if not pi.connected:
             raise RuntimeError("Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]".format(pi.connected))
 
-        self.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=13)
-        self.down    = MotorPins(pi=pi, directionA=5,  directionB=6,  pwm=19)
+        self.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
+        self.down    = MotorPins(pi=pi, directionA=6,  directionB=5,  pwm=13)
+        self.frontT  = MotorPins(pi=pi, directionA=8, directionB=7, pwm=25)
+        self.backT   = MotorPins(pi=pi, directionA=16, directionB=12, pwm=1)
+

@@ -3,6 +3,7 @@ Le fichier main. L'invoquer avec l'option --help pour en savoir plus.
 """
 
 import os
+import subprocess
 from sys import argv
 
 
@@ -35,9 +36,10 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
         print(documentation)
         exit()
 
-    try:
+    onRaspberryPi = True
+    if onRaspberryPi:
         idfly = IdflyGPIO()
-    except RuntimeError:
+    else:
         idfly = DummyIdflyGPIO()
 
     class ActionHandler_motor(BaseActionHandler):
@@ -51,11 +53,11 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
 
         def frontT(self, value):
             printIDFLY("  frontT: {}".format(value))
-            printIDFLY("  frontT: {} -- unimplemented".format(value))
+            idfly.frontT(value)
 
         def backT(self, value):
             printIDFLY("  backT: {}".format(value))
-            printIDFLY("  backT: {} -- unimplemented".format(value))
+            idfly.backT(value)
 
     try:
         httpRoot = argv[1]
