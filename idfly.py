@@ -8,7 +8,7 @@ from sys import argv
 
 
 from util import printIDFLY, nop
-from idflygpio import IdflyGPIO, DummyIdflyGPIO
+from gpio import IdflyGPIO, DummyIdflyGPIO
 from piserver import serve_with_action_handler, BaseActionHandler
 
 
@@ -36,7 +36,7 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
         print(documentation)
         exit()
 
-    onRaspberryPi = True
+    onRaspberryPi = False
     if onRaspberryPi:
         idfly = IdflyGPIO()
     else:

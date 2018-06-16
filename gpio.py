@@ -14,6 +14,7 @@ import pigpio
 from util import nop
 
 def _addMotors(igpio):
+    pi = igpio.pi
     igpio.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
     igpio.down    = MotorPins(pi=pi, directionA=6,  directionB=5,  pwm=13)
     igpio.frontT  = MotorPins(pi=pi, directionA=8,  directionB=7,  pwm=25)
@@ -70,8 +71,11 @@ class IdflyGPIO(BaseIdflyGPIO):
     def __init__(self):
         runningAsRoot = os.geteuid() == 0
         if runningAsRoot:
-            subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
-        pi = pigpio.pi()
-        if not pi.connected:
+            try:
+                subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
+            except subprocess.CalledProcessError:
+                print("Cannot start server pigpiod")
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
             raise RuntimeError("Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]".format(pi.connected))
         _addMotors(self)
