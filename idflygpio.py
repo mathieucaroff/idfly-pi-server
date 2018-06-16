@@ -1,3 +1,4 @@
+#/usr/bin/python3
 """
 Une classe pour la gestion des GPIO.
 """
@@ -57,6 +58,9 @@ class IdflyGPIO(BaseIdflyGPIO):
     """
 
     def __init__(self):
+        runningAsRoot = os.geteuid() == 0
+        if runningAsRoot:
+            subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
         pi = pigpio.pi()
         if not pi.connected:
             raise RuntimeError("Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]".format(pi.connected))
