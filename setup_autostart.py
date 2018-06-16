@@ -8,7 +8,9 @@ Add an executable file in /etc/init.d and symlink(s) in /etc/rc{x}.d, so that th
 python server is automatically run as root at startup
 """.format(x=runlevels)
 
+mainName = "idfly.py"
 serviceName = "idfly"
+httpRootDirName = "remote"
 
 import os
 import sys
@@ -18,9 +20,10 @@ from pathlib import Path
 
 initdFile = Path("/etc/init.d/" + serviceName)
 rcxdFiles = [Path("/etc/rc{x}.d/{sn}".format(x=x, sn=serviceName)) for x in runlevels]
-optDir = Path("/opt/" + serviceName)
+optDirService = Path("/opt/" + serviceName)
+optDirHttpRoot = Path("/opt/" + httpRootDirName)
 
-allFiles = [initdFile, optDir] + rcxdFiles
+allFiles = [initdFile, optDirService, optDirHttpRoot] + rcxdFiles
 
 runningAsRoot = os.geteuid() == 0
 if not runningAsRoot:
@@ -32,21 +35,29 @@ print("*", "\n* ".join(map(str, allFiles)))
 
 if any(f.exists() for f in allFiles):
     print("""Warning: Some files are already installed. They will be reinstalled.""")
+    randomVal = random.randrange(10**6)
     for f in allFiles:
         oldfstr = str(f)
         if f.is_symlink():
             f.unlink()
         elif f.exists():
-            dstPath = "/tmp/{dirname}-{sn}-{rdm}".format(
+            dstPath = "/tmp/{randomVal}-{dirname}-{filename}-{sn}".format(
+                randomVal=randomVal,
                 dirname=f.parent.name,
+                filename=f.name,
                 sn=serviceName,
-                rdm=random.randrange(10**6)
             )
             f.rename(dstPath)
 
+currentDir = Path(__file__).parent.absolute() # pylint: disable=no-member
 shutil.copytree(
-    src=str(Path(__file__).parent),
-    dst=str(optDir),
+    src=str(currentDir),
+    dst=str(optDirService),
+    ignore=shutil.ignore_patterns(".*")
+)
+shutil.copytree(
+    src=str(currentDir.parent / httpRootDirName),
+    dst=str(optDirHttpRoot),
     ignore=shutil.ignore_patterns(".*")
 )
 
@@ -55,12 +66,18 @@ initdFile.write_text("""
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides           idfly
-# Default-Start:     {rlvls}
+# Default-Start:     {runlvls}
 # Short-Description: Serveur du dirigeable ID-FLY
 ### END INIT INFO
 
-env PWD=/opt/pi-server /usr/bin/python3 /opt/pi-server/idfly.py /opt/remote 80 0.0.0.0
-""")
+env PWD="{optDirLocation}" "{pythonLocation}" "{mainLocation}" "{httpRootLocation}" 80 0.0.0.0
+""".format(
+    runlvls=" ".join(map(str,runlevels)),
+    optDirLocation=str(optDirService),
+    pythonLocation="/usr/bin/python3",
+    mainLocation=str(optDirService / mainName),
+    httpRootLocation=str(optDirHttpRoot),
+))
 
 for f in rcxdFiles:
     f.symlink_to(initdFile)
