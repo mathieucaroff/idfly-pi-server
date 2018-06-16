@@ -1,3 +1,4 @@
+#/usr/bin/python3
 """
 Module de gestion des GPIO des moteurs du dirigeable.
 """
@@ -11,6 +12,12 @@ from collections import namedtuple
 import pigpio
 
 from util import nop
+
+def _addMotors(igpio):
+    igpio.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
+    igpio.down    = MotorPins(pi=pi, directionA=6,  directionB=5,  pwm=13)
+    igpio.frontT  = MotorPins(pi=pi, directionA=8,  directionB=7,  pwm=25)
+    igpio.backT   = MotorPins(pi=pi, directionA=16, directionB=12, pwm=1)
 
 class MotorPins():
     """Classe de contrôle d'un moteur via deux pins de direction et une PWM."""
@@ -61,16 +68,10 @@ class IdflyGPIO(BaseIdflyGPIO):
     """
 
     def __init__(self):
-        weAreRoot = os.geteuid() == 0
-        if weAreRoot:
-            subprocess.call(["sh", "-c", "pgrep pigpiod || pigpiod"])
-            time.sleep(1)
+        runningAsRoot = os.geteuid() == 0
+        if runningAsRoot:
+            subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
         pi = pigpio.pi()
         if not pi.connected:
             raise RuntimeError("Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]".format(pi.connected))
-
-        self.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
-        self.down    = MotorPins(pi=pi, directionA=6,  directionB=5,  pwm=13)
-        self.frontT  = MotorPins(pi=pi, directionA=8, directionB=7, pwm=25)
-        self.backT   = MotorPins(pi=pi, directionA=16, directionB=12, pwm=1)
-
+        _addMotors(self)
