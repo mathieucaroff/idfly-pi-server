@@ -11,7 +11,7 @@ from collections import namedtuple
 
 import pigpio
 
-from util import nop
+from util import nop, printIDFLY
 
 def _addMotors(igpio):
     pi = igpio.pi
@@ -74,8 +74,15 @@ class IdflyGPIO(BaseIdflyGPIO):
             try:
                 subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
             except subprocess.CalledProcessError:
-                print("Cannot start server pigpiod")
+                printIDFLY("Cannot start server pigpiod")
+                printIDFLY(r"/==============================================================\")
+                printIDFLY(r" You should run `sudo pigpiod` first, to start the gpio daemon. ")
+                printIDFLY(r" You can also just run me as with sudo.")
+                printIDFLY(r"\==============================================================/")
         self.pi = pigpio.pi()
         if not self.pi.connected:
-            raise RuntimeError("Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]".format(pi.connected))
+            raise RuntimeError("""Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]""".format(self.pi.connected))
         _addMotors(self)
+
+if __name__ == "__main__":
+    printIDFLY("Run `sudo python3 idfly.py` to start the server.")

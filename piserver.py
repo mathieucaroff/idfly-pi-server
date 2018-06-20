@@ -6,6 +6,8 @@ vitesses des moteurs du ballon dirigeable IDFLY.
 #https://gist.github.com/mdonkers/63e115cc0c79b4f6b8b3a6b797e485c7
 
 import os
+import sys
+from contextlib import suppress
 import time
 import multiprocessing as mp
 import threading
@@ -110,10 +112,9 @@ def serve_with_action_handler(port, host, ActionHandler=DummyActionHandler): # a
         server_address = (host, port)
         http_server = HTTPServer(server_address, HTTPRequestHandler)
         printIDFLY("Starting http server on port {port}".format(port=port))
-        try:
+        with suppress(KeyboardInterrupt):
             http_server.serve_forever()
-        except KeyboardInterrupt:
-            pass
+        print()
         printIDFLY("Stoping http server")
 
     def queueRunner():
@@ -122,27 +123,31 @@ def serve_with_action_handler(port, host, ActionHandler=DummyActionHandler): # a
             assert hasattr(actionHandler, motor), motor
         dummyTimer = threading.Timer(0, nop)
         motorThreads = dict((motor, dummyTimer) for motor in MOTORS)
-        while True:
-            command = commandQueue.get() # appel généralement blocant
-            for key, value in command.items():
-                action = getattr(actionHandler, key) # Get the method (forward, ...)
+        with suppress(KeyboardInterrupt):
+            while True:
+                command = commandQueue.get() # appel généralement blocant
+                for key, value in command.items():
+                    action = getattr(actionHandler, key) # Get the method (forward, ...)
 
-                motorThreads[key].cancel() # Cancel scheduled motor stop
+                    motorThreads[key].cancel() # Cancel scheduled motor stop
 
-                # The motor should be stopped after AUTO_CANCEL_TIMING
-                if value != 0:
-                    val = 0
-                    thread = threading.Timer(AUTO_CANCEL_TIMING, action, args=[val])
-                    motorThreads[key] = thread
-                    thread.start()
+                    # The motor should be stopped after AUTO_CANCEL_TIMING
+                    if value != 0:
+                        val = 0
+                        thread = threading.Timer(AUTO_CANCEL_TIMING, action, args=[val])
+                        motorThreads[key] = thread
+                        thread.start()
 
-                # Do the action (if it isn't just a keep request)
-                isKeepRequest = value is None
-                if not isKeepRequest:
-                    action(value)
-                    time.sleep(0.05)
+                    # Do the action (if it isn't just a keep request)
+                    isKeepRequest = value is None
+                    if not isKeepRequest:
+                        action(value)
+                        time.sleep(0.05)
     
     pqr = mp.Process(target=queueRunner) # nouveau process : execution des commandes dans la file d'attente
     pqr.start() # démarrage du process pqr (Process Queue Runner)
     serve()     # démarrage du serveur
     pqr.join()  # fin du process pqr
+
+if __name__ == "__main__":
+    printIDFLY("Run `sudo python3 idfly.py` to start the server.")

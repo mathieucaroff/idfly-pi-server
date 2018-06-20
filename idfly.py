@@ -78,4 +78,4 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
         ActionHandler=ActionHandler_motor
     ) # lancement du serveur
 else:
-    print("[IDFLY] idfly.py n'est pas supposé être importé, mais uniquement utilisé depuis la console: `python3 idfly.py`")
+    print("[IDFLY] idfly.py n'est pas supposé être importé, mais uniquement utilisé depuis la console: `(sudo) python3 idfly.py`")
