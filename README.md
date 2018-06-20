@@ -27,7 +27,7 @@ Pour chaque moteur, s'il est maintenu actif pendant une seconde sans que le serv
 Les clés utilisées pour transmettre les instructions sont:
 
 * `forward`
-* `down`
+* `up`
 * `frontT`
 * `backT`
 

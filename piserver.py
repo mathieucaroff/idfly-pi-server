@@ -31,7 +31,7 @@ from util import printIDFLY, nop
 VAL_MOTEUR_MAX = 100 # valeur maximale de commande prise en compte
 VAL_MOTEUR_MIN = -VAL_MOTEUR_MAX # valeur minimale de commande prise en compte
 AUTO_CANCEL_TIMING = 1.0 # seconds # temps qu'un moteur tournera si l'instruction de maintient en fonctionnement n'est pas envoyée
-MOTORS = set("forward down frontT backT".split()) # noms des moteurs (commandes) pris en compte
+MOTORS = set("forward up frontT backT".split()) # noms des moteurs (commandes) pris en compte
 
 # https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 code_ok_noContent = 204 # code de réussite
@@ -49,7 +49,7 @@ class BaseActionHandler(ABC):
         pass
     
     @abstractmethod
-    def down(self, value):
+    def up(self, value):
         pass
 
     @abstractmethod
@@ -61,14 +61,14 @@ class BaseActionHandler(ABC):
         pass
 
 class DummyActionHandler(BaseActionHandler):
-    forward, down, frontT, backT = [nop] * 4
+    forward, up, frontT, backT = [nop] * 4
 
 class ActionHandler_tell(BaseActionHandler):
     def forward(self, value):
         printIDFLY("  forward: {}".format(value))
     
-    def down(self, value):
-        printIDFLY("  down: {}".format(value))
+    def up(self, value):
+        printIDFLY("  up: {}".format(value))
 
     def frontT(self, value):
         printIDFLY("  frontT: {}".format(value))

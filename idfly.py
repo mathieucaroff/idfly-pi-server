@@ -48,9 +48,9 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
             printIDFLY("  forward: {}".format(value))
             idfly.forward(value)
 
-        def down(self, value):
-            printIDFLY("  down: {}".format(value))
-            idfly.down(value)
+        def up(self, value):
+            printIDFLY("  up: {}".format(value))
+            idfly.up(value)
 
         def frontT(self, value):
             printIDFLY("  frontT: {}".format(value))

@@ -16,7 +16,7 @@ from util import nop, printIDFLY
 def _addMotors(igpio):
     pi = igpio.pi
     igpio.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
-    igpio.down    = MotorPins(pi=pi, directionA=6,  directionB=5,  pwm=13)
+    igpio.up      = MotorPins(pi=pi, directionA=5,  directionB=6,  pwm=13)
     igpio.frontT  = MotorPins(pi=pi, directionA=8,  directionB=7,  pwm=25)
     igpio.backT   = MotorPins(pi=pi, directionA=16, directionB=12, pwm=1)
 
@@ -52,7 +52,7 @@ class BaseIdflyGPIO(ABC):
 
 
 class DummyIdflyGPIO(BaseIdflyGPIO):
-    forward, down, frontT, backT = [nop] * 4
+    forward, up, frontT, backT = [nop] * 4
 
 
 class IdflyGPIO(BaseIdflyGPIO):
@@ -62,10 +62,10 @@ class IdflyGPIO(BaseIdflyGPIO):
     Usage:
         idfly = IdflyGPIO()
         idfly.forward(100)
-        idfly.down(-24)
+        idfly.up(-24)
         time.sleep(1)
         idfly.forward(0)
-        idfly.down(0)
+        idfly.up(0)
     """
 
     def __init__(self):
