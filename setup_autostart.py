@@ -70,7 +70,7 @@ def install():
 
     initdFile.touch(mode=0o755)
     initdFile.write_text("""
-    #!/bin/sh
+    #!/bin/bash
     ### BEGIN INIT INFO
     # Provides:          {serviceName}
     # Required-Start:
@@ -80,8 +80,11 @@ def install():
     # Short-Description: Serveur du dirigeable ID-FLY
     ### END INIT INFO
 
-    env PWD="{optDirLocation}" "{pythonLocation}" "{mainLocation}" "{httpRootLocation}" 80 0.0.0.0
-    /home/pi/
+    LOGFILE=/tmp/idfly.log
+    STARTLOGFILE=/tmp/idfly.start.log
+
+    echo "[IDFLY] $(date) - Server starting" > $STARTLOGFILE
+    env PWD="{optDirLocation}" "{pythonLocation}" "{mainLocation}" "{httpRootLocation}" 80 0.0.0.0 &> $LOGFILE
     """.format(
         serviceName=serviceName,
         runlvls=" ".join(map(str,runlevels)),
