@@ -75,10 +75,10 @@ class IdflyGPIO(BaseIdflyGPIO):
                 subprocess.check_call("pgrep pigpiod || (pigpiod && sleep 0.4)", shell=True)
             except subprocess.CalledProcessError:
                 printIDFLY("Cannot start server pigpiod")
-                printIDFLY(r"/==============================================================\")
-                printIDFLY(r" You should run `sudo pigpiod` first, to start the gpio daemon. ")
-                printIDFLY(r" You can also just run me as with sudo.")
-                printIDFLY(r"\==============================================================/")
+                printIDFLY("/==============================================================\\")
+                printIDFLY(" You should run `sudo pigpiod` first, to start the gpio daemon. ")
+                printIDFLY(" You can also just run me as with sudo.")
+                printIDFLY("\\==============================================================/")
         self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("""Could not connect the gpio(s). [`pigpio.pi().connected`: `{}`]""".format(self.pi.connected))

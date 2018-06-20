@@ -81,6 +81,7 @@ def install():
     ### END INIT INFO
 
     env PWD="{optDirLocation}" "{pythonLocation}" "{mainLocation}" "{httpRootLocation}" 80 0.0.0.0
+    /home/pi/
     """.format(
         serviceName=serviceName,
         runlvls=" ".join(map(str,runlevels)),
