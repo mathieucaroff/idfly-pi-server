@@ -36,7 +36,8 @@ if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou c
         print(documentation)
         exit()
 
-    onRaspberryPi = False
+    from socket import gethostname
+    onRaspberryPi = gethostname() in ["raspberrypi", "pix"]
     if onRaspberryPi:
         idfly = IdflyGPIO()
     else:
