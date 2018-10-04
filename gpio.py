@@ -18,7 +18,7 @@ def _addMotors(igpio):
     igpio.forward = MotorPins(pi=pi, directionA=20, directionB=21, pwm=19)
     igpio.up      = MotorPins(pi=pi, directionA=5,  directionB=6,  pwm=13)
     igpio.frontT  = MotorPins(pi=pi, directionA=8,  directionB=7,  pwm=25)
-    igpio.backT   = MotorPins(pi=pi, directionA=16, directionB=12, pwm=1)
+    igpio.backT   = MotorPins(pi=pi, directionA=16, directionB=22, pwm=12)
 
 class MotorPins():
     """Classe de contrôle d'un moteur via deux pins de direction et une PWM."""
