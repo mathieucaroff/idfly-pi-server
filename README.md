@@ -1,4 +1,10 @@
-# Utilisation
+# Pi Server
+
+Un serveur http en Python pour Raspberry Pi permettant le contrôle de PWM par des requêtes POST (json).
+
+Ce serveur doit être couplé à un site (HTML/CSS/JS) dont il envera les pages, ce site présentant une interface agréable pour l'utilisateur. Jusqu'à présent nous avons utilisé https://gitlab.emse.fr/IDFLY/node-remote.
+
+## Utilisation
 
 Pour lancer le serveur, utiliser :
 
@@ -6,13 +12,15 @@ Pour lancer le serveur, utiliser :
 python3 idfly.py
 ```
 
-# Aide
+### Aide
+
+*Exécutez la commande ci-dessous pour savoir comment invoquer `idfly.py`.*
 
 ```sh
 python3 idfly.py --help
 ```
 
-# Fonctionnement de piserver.py
+## Fonctionnement de piserver.py
 
 Le fichier piserver.py crée un serveur python en utilisant la classe 'SimpleHTTPRequestHandler' du module http.server de python 3. Cette classe implémente les requêtes GET et HEAD, et envoie en réponse, les fichiers du dossier PWD -- dossier que nous sélectionnons dans le script via la commande os.chdir().
 
