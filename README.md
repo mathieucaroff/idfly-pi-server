@@ -6,6 +6,12 @@ Ce serveur doit être couplé à un site (HTML/CSS/JS) dont il envera les pages,
 
 ## Utilisation
 
+En premier lieu, lancer le service `pigpiod` de `pigpio`, afin de controller les gpios de la carte:
+
+```sh
+sudo pigpiod
+```
+
 Pour lancer le serveur, utiliser :
 
 ```sh
@@ -19,6 +25,22 @@ python3 idfly.py
 ```sh
 python3 idfly.py --help
 ```
+
+## Résponsabilité associée à chaque fichier
+
+<dl>
+<dt>idfly.py</dt>
+<dd>Lire les arguments de lancement du script (argv), observer l'environnement et choisir des valeurs par défaut sensées. Rassembler les fonctionnalités des autres fichiers pour créer le système complet.</dd>
+
+<dt>gpio.py</dt>
+<dd>Gérer les gpios: la connection au service pigpiod, savoir quel port utiliser, l'initialisation des ports en PWM et passer les consignes de rapport cyclique.</dd>
+
+<dt>pi-server.py</dt>
+<dd>Accepter les connections entrantes. Servir les fichiers du dossier httpRoot lorsqu'il s'agit de requêtes GET et recevoir les requêtes POST (json) pour changer les valeurs des PWMs.</dd>
+
+<dt>util.py</dt>
+<dd>Rassmebler le code implémentant des fonctionnalités génériques qui ne sont pas propres au projet.</dd>
+<dl>
 
 ## Fonctionnement de piserver.py
 
