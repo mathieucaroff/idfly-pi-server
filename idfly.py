@@ -25,9 +25,9 @@ Usage:
 
 Serveur python de la raspberry pi pour le projet IDFLY.
 
-  httpRoot defaults to: {httpRoot}
-  port defaults to: {port}
-  host defaults to: "{host}"
+  httpRoot defaults to: <{httpRoot}>
+  port defaults to: <{port}>
+  host defaults to: <{host}>
 """.format(**locals())
 
 if __name__ == '__main__': # sert à savoir si on est utilisé comme module ou comme programme principal
