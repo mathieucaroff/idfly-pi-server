@@ -55,3 +55,7 @@ depuis un cron, en utilisant quelquechose comme
 posera souvent des difficulté avec cron. Utiliser
 `env -i bash monscript.sh` pour faire des tests avec un environnement vide
 et vérifier que ça fonctionne.)
+
+Voir `./startup/idfly-startup.sh` pour un script de lancement, et voir
+`./startup/idfly-sestup-startup.sh` pour l'automatisation de l'execution
+de ce script avec `~/.config/lxsession/LXDE-pi/autostart`.
